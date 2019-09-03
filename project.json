@@ -1,0 +1,20 @@
+{"ID": "1",
+ "Road": "1",
+ "Name": "resurfacing.",
+ "Status": "closed",
+ "StartDate": "2019-12-12T00:00:00",
+ "EndDate": "2019-12-14T00:00:00",
+ "Contractor": "ABC Company",
+ "Problems": [
+      {"Author": "John D.", “Text”: “safety issues”},
+      { … }
+ ],
+ "Works": [
+      {"Type": "resurfacing", “SubContractors”: “Local Inc; Danny Do”, "Status": "done"},
+      { … }
+ ],
+ "Comments": [
+      {"Author": "John D.", "Text": "Work completed."},
+      { … }
+ ]
+}

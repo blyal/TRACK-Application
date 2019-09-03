@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html ng-app="TrackApp">
+
+<head>
+  <meta charset="utf-8" />
+  <title>TRACK | NZTA</title>
+  <script>
+    document.write('<base href="' + document.location + '" />');
+  </script>
+  <link rel="stylesheet" href="style.css" />
+  <script data-require="angular.js@1.4.x" src="https://code.angularjs.org/1.4.12/angular.js" data-semver="1.4.9"></script>
+  <script src="app.js"></script>
+</head>
+
+<body ng-controller="TrackController">
+  <h1 class="heading"> T R A C K</h1>
+  
+<!-- nav bar code which is bound to an ng-show as it is split up into two navbars. A navbar will show depending on which user logs in-->
+  <header ng-show="HideShowNav" ng-switch="userTypeLogin" ng-if="userTypeLogin == 'manager' || userTypeLogin == 'inspector'">
+    <div id="manager-nav" ng-switch-when="manager">
+      <ul class="nav-bar">
+        <li ng-click="showRoads2(); getRoads()">Roads</li>
+        <li ng-click="showArchive()">Archives</li>
+        <li ng-click="showUsers(); getUsers()">Users</li>
+      </ul>
+    </div><br>
+    <div id="inspector-nav" ng-show="HideShowNav" ng-switch-when="inspector">
+      <ul class="nav-bar">
+        <li ng-click="showRoads2(); getRoads()">Roads</li>
+        <li ng-click="showProjects(); getProjects()">My Projects</li>
+      </ul>
+    </div>
+  </header><br>
+  
+  <!--governs entirety of login form-->
+  <div id="entirelogin" ng-show="HideShowLogin">
+    <!--radio button selectors for account types-->
+		<!--ng-models are usd here to bind radio buttons to user types-->
+    <form id="logintype" action="action_page.php" required>
+      <label class="radiocontainer">Manager
+        <input type="radio" name="login" id="manager" value="manager" ng-model="userTypeLogin">
+        <span class="checkmark"></span>
+      </label>
+      <label class="radiocontainer">Inspector
+        <input type="radio" name="login" id="inspector" value="inspector" ng-model="userTypeLogin">
+        <span class="checkmark"></span>
+      </label>
+      <label class="radiocontainer">Contractor
+        <input type="radio" name="login" id="contractor" value="contractor" ng-model="userTypeLogin">
+        <span class="checkmark"></span>
+      </label>
+    </form>
+
+    <!-- form which governs the username, password, login and cancel buttons  -->
+    <form class="form1">
+      <!-- code for the username and password textboxes -->
+      <div class="container">
+        <label for="uname"><b>Username</b></label>
+				<div id="loginDetails">
+          <input type="text" id="userDetails" placeholder="Enter Username" name="uname" ng-model="userInput" !required>
+          <label for="psw"><b>Password</b></label>
+          <input type="password" id="pswDetails" placeholder="Enter Password" name="psw" ng-model="passwordInput" !required>
+				</div>
+        <input type="button" id="loginbtn" value="Login" ng-click="ShowRoads1(); getRoads()" />
+        <label id=rememberme>
+          <input type="checkbox" name="rememberme" ng-model="rememberMe"> Remember Me
+        </label>
+				<p ng-bind="feedback"></p>
+				<!--this code makes enter key press run the login button-->
+				<script>
+						var input = document.getElementById("loginDetails");
+						input.addEventListener("keyup", function(event) {
+  					if (event.keyCode === 13) {
+  				 event.preventDefault();
+   					document.getElementById("loginbtn").click();
+  					}
+						});
+					</script>
+      </div>
+
+      <!-- code for the cancel button. ng-click=null wipes the inputs clear -->
+      <div class="container" style="background-colour:#f1f1f1">
+        <button type="button" class="cancelbtn" ng-click="userInput = null; passwordInput = null; userTypeLogin = null" >Cancel</button>
+        <span class="psw">
+     				Forgot 
+     				<a href="#">password?</a>
+     			</span>
+      </div>
+    </form>
+  </div>
+
+  <div class="track-page" ng-show="HideShowRoads" ng-switch="userTypeLogin" ng-if="userTypeLogin == 'manager' || userTypeLogin == 'inspector'">
+    <h1>TRACK ROADS</h1><br><br><br>
+    <div class="road-list" id="list">
+      <h2>Current Roads</h2>
+      <ol>
+        <li ng-repeat="road in roadsList"><a ng-click="showRoadTable1(); selectThisRoad(road)">{{road.ID}}. {{road.Location}}</a></li>
+			  <!-- the Angular code which displays the list of roads, along with the code which shows the data table -->
+		  </ol>
+	  </div><br><br>
+		<!--ng-switch controls what can be seen depending on user type-->
+	  <div class="road-data-table" id="rd-table-kapiti" ng-show="hideShowRoadTable1" ng-switch="userTypeLogin">
+			<!--Table for Road Data-->
+		  <table style="margin-bottom: 15px;">
+		    <thead>
+			    <tr>
+				    <th colspan="2">{{roadID}}. {{roadLocation}}</th>
+			    </tr>
+		    </thead>
+		    <tbody>
+				  <tr>
+				  	<td class="road-data">ID:</td>
+				  	<td id="ID">{{roadID}}</td>
+			  	</tr>
+			    <tr>
+				    <td class="road-data">Code:</td>
+				    <td id="code">{{roadCode}}</td>
+			    </tr>
+			    <tr>
+				    <td class="road-data">Type:</td>
+				    <td id="type">{{roadType}}</td>
+			    </tr>
+			    <tr>
+				    <td class="road-data">Section:</td>
+				    <td id="section">{{roadSection}}</td>
+			    </tr>
+			    <tr>
+				    <td class="road-data">Location:</td>
+				    <td id="location">{{roadLocation}}</td>
+			    </tr>
+			    <tr>
+				    <td class="road-data">GPS:</td>
+				    <td id="gps">{{roadGPS}}</td>
+			    </tr>
+		      <tr ng-switch-when="manager">
+			      <td colspan="2">
+			         <button class="updating-button">Update Road</button>
+			      </td>
+			    </tr>
+			    <tr ng-switch-when="manager">
+			      <td colspan="2">
+				    <!--button bound to road delete function-->
+			      <button ng-click="deleteRoad(Roads)" class="close-and-archive-button">Archive Road</button>
+			      </td>
+		      </tr>  
+		    </tbody>
+		  </table>
+			<!--button which appears when a road is selected. Takes user to projects related to that road-->
+		  <button type="button" id="link" ng-click="showProjects(); getProjects()">Open Projects &rarr;</button>
+	  </div><br><br>
+	  <!--button which opens form to add new road details and update current road details-->
+	  <button class="classic-button" ng-click="showAddRoad()" ng-switch-when="manager"><strong>Add Road  &rarr;</strong></button><br><br>
+	  <div class="manager-add" ng-show="hideShowAddRoad"><br>
+	 		<!--input forms for creating/updating a road-->
+		  <form id="new-road" ng-submit="createRoad()">
+        <table>
+		      <tbody>
+		        <tr>
+		          <td class="road-data">ID:</td>
+		          <td id="ID"><input type="text" name="new-IDofRoad" id="new-IDofRoad" ng-model="newRID.value"></td>
+		        </tr>
+			      <tr>
+				      <td class="road-data">Code:</td>
+				      <td id="code"><input type="text" name="new-code" id="new-code" ng-model="newRCode.value"></td>
+			      </tr>
+			      <tr>
+				      <td class="road-data">Type:</td>
+				      <td id="type"><input type="text" name="new-type" id="new-type" ng-model="newRType.value"></td>
+			      </tr>
+			      <tr>
+				      <td class="road-data">Section:</td>
+				      <td id="section"><input type="text" name="new-section" id="new-section" ng-model="newRSection.value"></td>
+			      </tr>
+			      <tr>
+				      <td class="road-data">Location:</td>
+				      <td id="location"><input type="text" name="new-location" id="new-location" ng-model="newRLocation.value"></td>
+			      </tr>
+			      <tr>
+				      <td class="road-data">GPS:</td>
+				       <td id="gps"><input type="text" name="new-gps" id="new-gps" ng-model="newRGPS.value"></td>
+			      </tr>
+		      </tbody>
+		    </table><br><br>
+		    <input type="submit" class="classic-button" id="confirm-add-road" value="Confirm"><br><br>
+				<button type="button" class="cancelbtn" ng-click="newRID = null; newRCode = null; newRType = null; newRSection = null; newRLocation = null; newRGPS = null" >Cancel</button><br><br>
+		  </form>
+	  </div>
+	  <!--a logout button is placed on each page as it runs its own ng-show function-->
+	  <br><br><br><br><br><br><br><br><br>
+	  <div id="logout-section" ng-show = "logout">
+	     	  <button id="logout" ng-click="ShowLogin(); rememberLoginDetails(rememberMe)">Logout</button>
+	   </div>
+	</div>
+
+	<!--forms for the archives page. Purely UI Infrastructure, we built it just because it would be work well if the server could be changed-->
+	<div class="track-page" id="archive" ng-show="HideShowArchives">
+	  <h1>TRACK ARCHIVE</h1><br><br><br>
+		<div class="archive-list" id="list">
+	  	<h2>Archived Roads</h2>
+	  	<ol>
+		  	<li><a ng-click="showRoadArchiveTable1()">Archived Road</a></li>
+			  <li><a>Another One<a></li>
+			  <li><a>Y Otro Mas<a></li>
+		  </ol>
+		</div><br><br>
+	  <div class="road-data-table" id="rd-table-archive1" ng-show="hideShowRoadArchives">
+		  <table>
+		    <thead>
+			    <tr>
+				    <th colspan="2">Archived Road Data</th>
+			    </tr>
+		    </thead>
+		    <tbody>
+			    <tr>
+				    <td class="road-data">Code:</td>
+				    <td id="code">...</td>
+			    </tr>
+			    <tr>
+				    <td class="road-data">Type:</td>
+				    <td id="type">...</td>
+			    </tr>
+			    <tr>
+				    <td class="road-data">Section:</td>
+				    <td id="section">...</td>
+			    </tr>
+			    <tr>
+				    <td class="road-data">Location:</td>
+				    <td id="location">...</td>
+			    </tr>
+			    <tr>
+				    <td class="road-data">GPS:</td>
+				    <td id="gps">...</td>
+			    </tr>
+		    </tbody>
+		  </table>
+		  <button type="button" id="link" ng-click="showProjectArchives1()">Open Projects &rarr;</button>
+	  </div>
+		<div class="archive-list" id="list" ng-show="hideShowProjectArchives1">
+		  <h2>Archived Projects</h2>
+		  <ol>
+			  <li><a ng-click="showProjectArchives1Table1()">Archived Project<a></li>
+			  <li><a>Another One<a></li>
+			  <li><a>Y Otro Mas<a></li>
+	  	</ol>
+		</div>			
+		<div class="project-table" id="p-table-archive1" ng-show="hideShowProjectArchives1Table1">
+				<table>
+					<thead>
+						<tr>
+							<th colspan="2">Project 1 [Road Name]</th>
+							</tr>
+					</thead>
+		<!-- code for actual content in data table -->
+					<tbody>
+						<tr>
+							<td class="project-data">ID:</td>
+							<td id="ID">...</td>
+						</tr>
+						<tr>
+							<td class="project-data">Road:</td>
+							<td id="road">...</td>
+						</tr>
+						<tr>
+							<td class="project-data">Work:</td>
+							<td id="name">...</td>
+						</tr>
+		        <tr>
+		          <td class="project-data">Status:</td>
+				      <td id="status">...</td>
+			      </tr>
+            <tr>
+				      <td class="project-data">Start Date:</td>
+				      <td id="start-date">...</td>
+			      </tr>
+			      <tr>
+			       	<td class="project-data">End Date:</td>
+			        <td id="end-date">...</td>
+			      </tr>
+			      <tr>
+			        <td class="project-data">Contractor:</td>
+			        <td id="contractor">...</td>
+			    	</tr>
+		    	</tbody>
+		  	</table>
+		    <button type="button" id="link" ng-click="showWorksArchives1()">Open Works &rarr;</button>
+	   </div> 
+	   <div class="archive-list" id="list" ng-show="hideShowWorksArchives1">
+		    <h2>Archived Works</h2>
+		    <ol>
+			    <li><a ng-click="showWorksArchives1Table1()">Archived Work<a></li>
+			    <li><a>Example Archived Work 2<a></li>
+		    </ol>
+	   </div><br><br>
+	   <div class="works-data-table" id="wd-table-archive1" ng-show="hideShowWorksArchives1Table1">
+		  <table>
+		    <thead>
+			    <tr>
+				    <th colspan="2">Archived Work [Project Name]</th>
+			    </tr>
+		    </thead>
+		    <tbody>
+			    <tr>
+				    <td class="works-data">Subcontractors:</td>
+				    <td id="subcontractors">...</td>
+			    </tr>
+			    <tr>
+				    <td class="works-data">Status:</td>
+				    <td id="works-status">...</td>
+			    </tr>
+		    </tbody>
+		  </table>
+	  </div>
+	  <div id="logout-section" ng-show = "logout">
+	    <button id="logout" ng-click="ShowLogin(); rememberLoginDetails(rememberMe)">Logout</button>
+	  </div>
+	</div>
+	
+    <!--forms for the projects page-->
+    <div class="track-page" ng-show="HideShowProjects" ng-switch="userTypeLogin">
+      <h1>TRACK PROJECTS</h1><br><br><br>
+      <div class='project-list' id="list">
+        <h2>Current Projects</h2>
+        <ol style="list-style: none;">
+					<!--code is included here so only one project is selected on click and to bind projects to their corresponding road-->
+          <li ng-repeat="project in projectsList | filter:{Road:roadID}"><a ng-click="showProjectTable1(); selectThisProject(project)">{{project.ID}}, {{project.Name}}<a></li> 
+			  </ol>
+		  </div>
+		  <!-- div for the project data table -->
+			<div ng-show="hideShowProjectTable1">
+			  <div class="project-table">
+				  <table style="margin-bottom: 15px;" ng-switch="userTypeLogin">
+					  <thead>
+						  <tr>
+							  <th colspan="2">{{projectName}} {{roadLocation}}</th>
+							</tr>
+					  </thead>
+		<!-- code for actual content in data table -->
+					  <tbody>
+						  <tr>
+							  <td class="project-data">ID:</td>
+							  <td id="ID"> {{projectID}} </td>
+					  	</tr>
+						  <tr>
+							  <td class="project-data">Road:</td>
+							  <td id="road"> {{projectRoad}} </td>
+					  	</tr>
+						  <tr>
+							  <td class="project-data">Name:</td>
+							  <td id="name">{{projectName}}</td>
+						  </tr>
+		          <tr>
+		            <td class="project-data">Status:</td>
+				        <td id="status">{{projectStatus}}</td>
+			        </tr>
+              <tr>
+				        <td class="project-data">Start Date:</td>
+				        <td id="start-date">{{projectStartDate}}</td>
+			        </tr>
+			        <tr>
+			       	  <td class="project-data">End Date:</td>
+			          <td id="end-date">{{projectEndDate}}</td>
+			        </tr>
+			        <tr>
+			          <td class="project-data">Contractor:</td>
+			          <td id="contractor">{{projectContractor}}</td>
+			    	  </tr>
+			    	  <tr>
+			    	    <td colspan="2">
+				<!--buttons to update and delete projects-->
+			    	    <button class="updating-button" ng-click="showUpdateProject(); updateProjectBind(project)">Update Project</button>
+			    	    </td>
+			    	  </tr>
+			    	  <tr ng-switch-when="manager">
+			    	    <td colspan="2">
+			    	    <button ng-click="deleteProject(Projects)" class="close-and-archive-button">Archive Project</button>
+			    	    </td>
+			    	  </tr>
+		    	  </tbody>
+		  	  </table>
+		  	  <button type="button" id="link" ng-click="showWorks()">Open Works &rarr;</button>
+		  	</div><br><br>
+		  	<div class="problem-list" id="list">
+		  	  <h3>TRACK Problems</h3>
+		  	  <h4>{{projectName}}</h4>
+		  	  <ol>
+		  	    <li id="problem-item" ng-repeat="problem in projectProblems">{{problem.Text}} <hr><span>{{problem.Author}}</span><br><button class="close-and-archive-button">Close Problem</button></li>
+		  	  </ol>
+		  	  <input type="text" class="new-problem" placeholder="The new problem" ng-model="newPProblemText.value" style="width: 200px; margin: 1px auto;">
+		  	  <input type="text" class="new-problem" placeholder="Your Name" ng-model="newPProblemAuthor.value" style="width: 200px; margin: 1px auto;">
+		  	  <button type="submit" id="addProblem" class="updating-button" ng-click="addProblem(projectProblems, projectID)" style="width: 200px;">Add Problem</button><br><br><br>
+		  	</div><br><br><br>
+		  	<div class="comment-list" id="list">
+		  	  <h3>TRACK Comments</h3>
+  				 <!--comment table-->
+		      <table id="comment-table">
+		        <thead>
+		          <tr>
+		            <th colspan="2">{{projectName}}:</th>
+		          </tr>
+		        </thead>
+		        <tbody>
+		          <tr ng-repeat="comment in projectComments">
+		            <td id="comment-text">{{comment.Text}}</td>
+		            <td id="comment-author">{{comment.Author}}</td>
+		          </tr>
+		        </tbody>
+		        <tfoot>
+		          <tr>
+		            <td colspan="2"><input type="text" placeholder="New Comment" ng-model="newPCommentText.value" style="width: 200px; margin: 1px auto; padding: 3px;"></td>
+		          </tr>
+		          <tr>
+		            <td colspan="2"><input type="text" placeholder="Your Name" ng-model="newPCommentAuthor.value" style="width: 200px; margin: 1px auto; padding: 3px;"></td>
+		          </tr>
+		          <tr>
+		            <td colspan="2"><button type="submit" id="addComment" class="updating-button" ng-click="addComment(projectComments, projectID)">Add Comment</button></td>
+		          </tr>
+		        </tfoot>
+		      </table><br><br>
+		  	</div><br>
+	    </div><br><br>
+	    <button class="classic-button" ng-click="showAddProject()" ng-switch-when="manager"><strong>Add Project  &rarr;</strong></button><br><br>
+			<!--div containing the forms/button to create/update a project. Sensitive depending on projectID-->
+	    <div class="manager-add" ng-show="hideShowAddProject"><br>
+		    <form id="new-project">
+          <table>
+		        <tbody>
+			        <tr>
+				        <td class="project-data">ID:</td>
+				        <td id="ID"><input type="text" name="new-ID" id="new-ID" ng-model="newPID.value"></td>
+			        </tr>
+			        <tr>
+				        <td class="project-data">Road:</td>
+				        <td id="road-ofproject"><input type="text" name="new-road-ofproject" id="new-road-ofproject" ng-model="newPRoad.value"></td>
+			        </tr>
+			        <tr>
+				        <td class="project-data">Name:</td>
+				        <td id="name"><input type="text" name="new-name" id="new-name" ng-model="newPName.value"></td>
+			        </tr>
+			        <tr>
+				        <td class="project-data">Status:</td>
+				        <td id="status"><input type="text" name="new-status" id="new-status" ng-model="newPStatus.value"></td>
+			        </tr>
+			        <tr>
+				        <td class="project-data">Start Date:</td>
+				        <td id="start-date"><input type="text" name="new-start-date" id="new-start-date" ng-model="newPStartDate.value"></td>
+			        </tr>
+			        <tr>
+				        <td class="project-data">End Date:</td>
+				        <td id="end-date"><input type="text" name="new-end-date" id="new-end-date" ng-model="newPEndDate.value"></td>
+			        </tr>
+			        <tr>
+				        <td class="project-data">Contractor:</td>
+				        <td id="contractor"><input type="text" name="new-contractor" id="new-contractor" ng-model="newPContractor.value"></td>
+			        </tr>
+		        </tbody>
+		      </table><br><br>
+		      <button class="classic-button" id="confirm-add-project" ng-click="createProject()">Confirm</button><br><br>
+				  <button type="button" class="cancelbtn" ng-click="newPID = null; newPRoad = null; newPName = null; newPStatus = null; newPStartDate = null; newPEndDate = null; newPContractor = null" >Cancel</button><br><br>
+		    </form>
+	    </div>
+	    <div id="logout-section" ng-show = "logout">
+	     	<button id="logout" ng-click="ShowLogin(); rememberLoginDetails(rememberMe)">Logout</button>
+	    </div>
+		</div>
+		<!--div for road works-->
+		<div class="track-page" ng-show="HideShowWorks">
+	    <h1>TRACK WORKS</h1><br><br><br>
+	    <div class="works-list" id="list">
+		    <h2>Current Works</h2>
+		    <ol>
+			    <li ng-repeat="work in projectWorks"><a ng-click="showWorksTable1()">{{work.Type}}</a></li>
+		    </ol>
+	    </div><br><br>
+	    <div class="works-data-table" ng-show="hideShowWorksTable1">
+		    <table>
+		      <thead>
+			      <tr ng-repeat="work in projectWorks">
+				      <th colspan="2">{{work.Type}}, {{roadLocation}}</th
+			      </tr>
+		      </thead>
+		      <tbody ng-repeat="work in projectWorks">
+			      <tr>
+				      <td class="works-data">Subcontractors:</td>
+				      <td id="subcontractors">{{work.SubContractors}}</td>
+			     </tr>
+			      <tr>
+				      <td class="works-data">Status:</td>
+				      <td id="works-status">{{work.Status}}</td>
+			      </tr>
+		      </tbody>
+		    </table>
+	    </div>
+	    <button class="classic-button" ng-click="showAddWork()"><strong>Add Work  &rarr;</strong></button><br><br>
+	    <div class="manager-add" ng-show="hideShowAddWork" ng-switch="userTypeLogin"><br>
+		    <form id="new-work">
+          <table>
+		        <tbody>
+			        <tr ng-switch-when="manager|inspector" ng-switch-when-separator="|">
+			          <td class="works-data">Type of Work:</td>
+			          <td id="works-type"><input type="text" name="new-works-type" id="new-works-type"></td>
+			        </tr>
+			        <tr>
+				        <td class="works-data">Subcontractors:</td>
+				        <td id="subcontractors"><input type="text" name="new-subcontractors" id="new-subcontractors"></td>
+			        </tr>
+			        <tr  ng-switch-when="manager|inspector" ng-switch-when-separator="|">
+				        <td class="works-data">Status:</td>
+				        <td id="works-status"><input type="text" name="new-works-status" id="new-works-status"></td>
+			        </tr>
+		        </tbody>
+		      </table><br><br>
+		      <button class="classic-button" id="confirm-add-work">Confirm</button><br><br>
+		    </form>
+	    </div>
+	    <div id="logout-section" ng-show = "logout">
+	      <button id="logout" ng-click="ShowLogin(); rememberLoginDetails(rememberMe)">Logout</button>
+	    </div>
+	</div> <!-- closing tag for project list div -->
+
+    	<!--The place where the Managers view and manage app users-->
+  <div class="track-page" id="user-list" ng-show="HideShowUsers">
+    <h1>TRACK USERS</h1><br><br>
+     <div class="user-table">
+		  <table>
+		    <thead>
+			    <tr>
+				    <th colspan="2">TRACK Users</th>
+			    </tr>
+		    </thead>
+		    <tbody>
+			    <tr ng-repeat="x in userList">
+				    <td class="user-data">{{x.LoginName}}</td>
+				    <td class="user-type">{{x.UserType}}</td>
+			    </tr>
+		    </tbody>
+		  </table>
+		</div><br>
+	
+	<!--This is a form whereby a Manager could add a new user to the server (which they can't, but we thought it made sense to build the infrastructure)-->	  
+		  <form id="new-user">
+		    <label><strong>New User:</strong></label>
+		    <input type="text" name="new-user" id="new-user" placeholder="TRACK User">
+		    <input type="text" name="user-password" id="user-email" placeholder="newpassword1">
+		    <select name="new-user-type">
+		      <option value="manager" id="new-user-manager">Manager</option>
+		      <option value="inspector" id="new-user-inspector" selected="selected">Inspector</option>
+		      <option value="contractor" id="new-user-contractor">Contractor</option>
+		    </select>
+		    <button type="submit">Add User</button>
+		  </form><br><br><br>
+		<!--projects are displayed with their corresponding contractors-->
+		  <h3>User Projects</h3>
+		    <table id="user-management-table">
+		      <thead>
+		        <tr>
+		          <th>Project:</th>
+		          <th>Contractor:</th>
+		          <th>Inspector:</th>
+		        </tr>
+		      </thead>
+		      <tbody ng-repeat="project in projectsList">
+		        <tr>
+		          <td>{{project.Road}}.{{project.ID}} {{project.Name}}</td>
+		          <td>{{project.Contractor}}</td>
+		          <td>{{project.Inspector}}</td>
+		        </tr>
+		      </tbody>
+		      <tfoot>
+		<!--Also a form whereby a Manager could add this time assign a contractor and inspector to a project. Just UI infrastructure thus far-->
+		        <tr>
+		          <td><input type="text" placeholder="0.0 New Project"></td>
+		          <td><select ng-model="project.Contractor" ng-options="project.Contractor for project in projectsList">
+		              </select></td>
+		          <td><select>
+		            <option disabled selected value style:display="none"></option>
+		            <option value="joeBloggs">Joe Bloggs</option>
+		          </select></td>
+		        </tr>
+		      </tfoot>
+		    </table>
+		    <button type="submit" id="addProject">Add Project</button><br><br>
+    	  <div id="logout-section" ng-show = "logout">
+	     	  <button id="logout" ng-click="ShowLogin(); rememberLoginDetails(rememberMe)">Logout</button>
+	     	</div>
+    </div><br><br>
+
+  </body> <!-- closing tag for ng-controller and ng-app variables -->
+</html>
